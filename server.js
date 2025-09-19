@@ -81,4 +81,6 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
 });
 
 app.get("/healthz", (_req, res) => res.send("ok"));
-app.listen(8080, () => console.log("KB middleware on :8080"));
+
+const port = process.env.PORT || 8080;
+app.listen(port, () => console.log(`KB middleware on :${port}`));
