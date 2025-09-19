@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  kb-middleware:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./service-account-key.json:/app/service-account-key.json:ro
+    restart: unless-stopped
