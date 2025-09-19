@@ -11,11 +11,16 @@ app.use(cors());
 app.use(express.json());
 
 async function driveClient() {
-  const auth = new google.auth.GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/drive.readonly"]
-  });
-  const client = await auth.getClient();
-  return google.drive({ version: "v3", auth: client });
+  try {
+    const auth = new google.auth.GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"]
+    });
+    const client = await auth.getClient();
+    return google.drive({ version: "v3", auth: client });
+  } catch (error) {
+    console.error("Google Drive authentication failed:", error.message);
+    throw new Error("Google Drive authentication failed. Please check service account credentials.");
+  }
 }
 
 async function verifyInFolder(drive, fileId, folderId) {
@@ -80,7 +85,21 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
   }
 });
 
+// Root route
+app.get("/", (_req, res) => res.json({ 
+  message: "KB Middleware is running!", 
+  status: "healthy",
+  endpoints: ["/healthz", "/api/:profile/search", "/api/:profile/file/:fileId/export"]
+}));
+
 app.get("/healthz", (_req, res) => res.send("ok"));
+
+// Test route that doesn't require Google Drive auth
+app.get("/test", (_req, res) => res.json({ 
+  message: "Test endpoint working!",
+  timestamp: new Date().toISOString(),
+  googleAuth: "Not tested"
+}));
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`KB middleware on :${port}`));
