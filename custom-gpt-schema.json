@@ -1,0 +1,123 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Agent Knowledge Base Drive API",
+    "version": "1.0.0",
+    "description": "Accesses only the Google Drive folder with ID `1hpJknbStDhT1Um3GyMM-srH9Q-Cyvsnp`."
+  },
+  "servers": [
+    { "url": "https://tp-projagent-prod-997319632400.us-central1.run.app" }
+  ],
+  "paths": {
+    "/api/{profile}/search": {
+      "get": {
+        "operationId": "searchFolder",
+        "summary": "Search inside the Agent Knowledge Base folder",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["agentkb"] },
+            "description": "Profile identifier (must be 'agentkb')"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Keywords or phrases to search"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 10 },
+            "description": "Maximum number of results to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "fileId": { "type": "string" },
+                      "name": { "type": "string" },
+                      "mimeType": { "type": "string" },
+                      "modifiedTime": { "type": "string" },
+                      "driveWebLink": { "type": "string" }
+                    },
+                    "required": ["fileId", "name", "driveWebLink"]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing query parameter"
+          },
+          "404": {
+            "description": "Profile not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/{profile}/file/{fileId}/export": {
+      "get": {
+        "operationId": "exportFile",
+        "summary": "Export file content as plain text",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["agentkb"] },
+            "description": "Profile identifier (must be 'agentkb')"
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Google Drive file ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Extracted text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileId": { "type": "string" },
+                    "name": { "type": "string" },
+                    "content": { "type": "string" }
+                  },
+                  "required": ["fileId", "name", "content"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "File not in the authorized folder"
+          },
+          "404": {
+            "description": "Profile or file not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  }
+}
