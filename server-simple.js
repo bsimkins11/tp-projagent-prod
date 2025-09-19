@@ -33,6 +33,9 @@ app.get("/api/:profile/search", async (req, res) => {
     if (!folderId) return res.status(404).json({ error: "Unknown profile" });
     const q = String(req.query.q || "").trim();
     if (!q) return res.status(400).json({ error: "Missing query" });
+    const limit = parseInt(req.query.limit) || 10;
+    
+    console.log(`Search request - Profile: ${req.params.profile}, Query: "${q}", Limit: ${limit}`);
 
     const auth = new google.auth.GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/drive.readonly"]
@@ -42,9 +45,19 @@ app.get("/api/:profile/search", async (req, res) => {
     const resp = await drive.files.list({
       q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
-      pageSize: 10
+      pageSize: limit
     });
-    res.json(resp.data.files || []);
+    
+    // Transform response to match OpenAPI schema
+    const files = (resp.data.files || []).map(file => ({
+      fileId: file.id,
+      name: file.name,
+      mimeType: file.mimeType,
+      modifiedTime: file.modifiedTime,
+      driveWebLink: file.webViewLink
+    }));
+    
+    res.json(files);
   } catch (error) {
     console.error("Search error:", error);
     res.status(500).json({ error: "Search error", details: error.message });
@@ -58,6 +71,8 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
     if (!folderId) return res.status(404).json({ error: "Unknown profile" });
 
     const { fileId } = req.params;
+    console.log(`Export request - Profile: ${req.params.profile}, FileId: ${fileId}`);
+    
     const auth = new google.auth.GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/drive.readonly"]
     });
