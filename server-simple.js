@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 
+const FOLDERS = {
+  agentkb: "1hpJknbStDhT1Um3GyMM-srH9Q-Cyvsnp" // <- your folder ID
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,19 +25,77 @@ app.get("/test", (_req, res) => res.json({
   googleAuth: "Not configured yet"
 }));
 
-// Placeholder routes for Google Drive API (will return errors until auth is set up)
+// Google Drive API routes
 app.get("/api/:profile/search", async (req, res) => {
-  res.status(503).json({ 
-    error: "Google Drive authentication not configured",
-    message: "Please add service account credentials to enable this feature"
-  });
+  try {
+    const { google } = await import("googleapis");
+    const folderId = FOLDERS[req.params.profile];
+    if (!folderId) return res.status(404).json({ error: "Unknown profile" });
+    const q = String(req.query.q || "").trim();
+    if (!q) return res.status(400).json({ error: "Missing query" });
+
+    const auth = new google.auth.GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"]
+    });
+    const drive = google.drive({ version: "v3", auth });
+    
+    const resp = await drive.files.list({
+      q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
+      fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
+      pageSize: 10
+    });
+    res.json(resp.data.files || []);
+  } catch (error) {
+    console.error("Search error:", error);
+    res.status(500).json({ error: "Search error", details: error.message });
+  }
 });
 
 app.get("/api/:profile/file/:fileId/export", async (req, res) => {
-  res.status(503).json({ 
-    error: "Google Drive authentication not configured",
-    message: "Please add service account credentials to enable this feature"
-  });
+  try {
+    const { google } = await import("googleapis");
+    const folderId = FOLDERS[req.params.profile];
+    if (!folderId) return res.status(404).json({ error: "Unknown profile" });
+
+    const { fileId } = req.params;
+    const auth = new google.auth.GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"]
+    });
+    const drive = google.drive({ version: "v3", auth });
+    
+    const { data: fileData } = await drive.files.get({
+      fileId,
+      fields: "id,name,mimeType,parents,webViewLink,modifiedTime"
+    });
+    
+    if (!(fileData.parents || []).includes(folderId)) {
+      return res.status(403).json({ error: "Not in folder" });
+    }
+
+    const mt = fileData.mimeType || "";
+    if (mt.startsWith("application/vnd.google-apps")) {
+      const mimeOut = mt.includes("document")
+        ? "text/plain"
+        : mt.includes("spreadsheet")
+        ? "text/tab-separated-values"
+        : "text/plain";
+      const streamResp = await drive.files.export(
+        { fileId, mimeType: mimeOut },
+        { responseType: "stream" }
+      );
+      let content = "";
+      streamResp.data.on("data", c => (content += c));
+      streamResp.data.on("end", () => res.json({ fileId, name: fileData.name, content }));
+      streamResp.data.on("error", () => res.status(500).json({ error: "Export stream error" }));
+    } else {
+      const dl = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+      const content = Buffer.from(dl.data).toString("utf8");
+      res.json({ fileId, name: fileData.name, content });
+    }
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ error: "Export error", details: error.message });
+  }
 });
 
 const port = process.env.PORT || 8080;
