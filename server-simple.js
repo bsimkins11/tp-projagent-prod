@@ -36,17 +36,27 @@ app.get("/api/:profile/search", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     
     console.log(`Search request - Profile: ${req.params.profile}, Query: "${q}", Limit: ${limit}`);
+    console.log(`Searching in folder: ${folderId}`);
 
     const auth = new google.auth.GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/drive.readonly"]
     });
     const drive = google.drive({ version: "v3", auth });
     
+    // First, let's check what files are in the folder
+    const folderCheck = await drive.files.list({
+      q: `'${folderId}' in parents`,
+      fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
+      pageSize: 10
+    });
+    console.log(`Files in folder: ${JSON.stringify(folderCheck.data.files)}`);
+    
     const resp = await drive.files.list({
       q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
       pageSize: limit
     });
+    console.log(`Search results: ${JSON.stringify(resp.data.files)}`);
     
     // Transform response to match OpenAPI schema
     const files = (resp.data.files || []).map(file => ({
