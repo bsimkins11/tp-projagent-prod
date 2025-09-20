@@ -47,7 +47,9 @@ app.get("/api/:profile/search", async (req, res) => {
     const folderCheck = await drive.files.list({
       q: `'${folderId}' in parents`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
-      pageSize: 10
+      pageSize: 10,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
     });
     console.log(`Files in folder: ${JSON.stringify(folderCheck.data.files)}`);
     
@@ -60,7 +62,9 @@ app.get("/api/:profile/search", async (req, res) => {
     const resp = await drive.files.list({
       q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
-      pageSize: limit
+      pageSize: limit,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
     });
     console.log(`Search results: ${JSON.stringify(resp.data.files)}`);
     
