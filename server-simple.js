@@ -25,6 +25,48 @@ app.get("/test", (_req, res) => res.json({
   googleAuth: "Not configured yet"
 }));
 
+// List all files in the folder (for debugging)
+app.get("/api/agentkb/list", async (req, res) => {
+  try {
+    const { google } = await import("googleapis");
+    const folderId = FOLDERS["agentkb"];
+    if (!folderId) return res.status(404).json({ error: "Unknown profile" });
+    
+    console.log(`Listing all files in folder: ${folderId}`);
+
+    const auth = new google.auth.GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"]
+    });
+    const drive = google.drive({ version: "v3", auth });
+    
+    const resp = await drive.files.list({
+      q: `'${folderId}' in parents`,
+      fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
+      pageSize: 50,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
+    });
+    
+    console.log(`Found ${resp.data.files?.length || 0} files in folder`);
+    
+    const files = (resp.data.files || []).map(file => ({
+      fileId: file.id,
+      name: file.name,
+      mimeType: file.mimeType,
+      modifiedTime: file.modifiedTime,
+      driveWebLink: file.webViewLink
+    }));
+    
+    res.json({ 
+      totalFiles: files.length,
+      files: files
+    });
+  } catch (error) {
+    console.error("List error:", error);
+    res.status(500).json({ error: "List error", details: error.message });
+  }
+});
+
 // Google Drive API routes
 app.get("/api/:profile/search", async (req, res) => {
   try {
