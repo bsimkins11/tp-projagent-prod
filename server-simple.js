@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 
 const FOLDERS = {
-  agentkb: "1hpJknbStDhT1Um3GyMM-srH9Q-Cyvsnp" // <- your folder ID
+  agentkb: "1UaUj8726-jgnKrrFKzOR4H6YJK0E_Q5L" // <- your folder ID
 };
 
 const app = express();
