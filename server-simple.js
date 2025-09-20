@@ -59,13 +59,25 @@ app.get("/api/:profile/search", async (req, res) => {
       return res.json([]);
     }
     
-    const resp = await drive.files.list({
-      q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
+    // Try searching by name first, then by content
+    let resp = await drive.files.list({
+      q: `'${folderId}' in parents and name contains '${q.replace(/'/g, "\\'")}'`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
       pageSize: limit,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true
     });
+    
+    // If no results by name, try by content
+    if (!resp.data.files || resp.data.files.length === 0) {
+      resp = await drive.files.list({
+        q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
+        fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
+        pageSize: limit,
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true
+      });
+    }
     console.log(`Search results: ${JSON.stringify(resp.data.files)}`);
     
     // Transform response to match OpenAPI schema
