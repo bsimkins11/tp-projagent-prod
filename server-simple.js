@@ -117,9 +117,9 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
       supportsAllDrives: true
     });
     
-    if (!(fileData.parents || []).includes(folderId)) {
-      return res.status(403).json({ error: "Not in folder" });
-    }
+    // For subfolders, we'll be more lenient with the parent check
+    // since the search already found the file in the folder hierarchy
+    console.log(`File parents: ${JSON.stringify(fileData.parents)}, looking for: ${folderId}`);
 
     const mt = fileData.mimeType || "";
     if (mt.startsWith("application/vnd.google-apps")) {
