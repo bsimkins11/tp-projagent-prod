@@ -51,6 +51,12 @@ app.get("/api/:profile/search", async (req, res) => {
     });
     console.log(`Files in folder: ${JSON.stringify(folderCheck.data.files)}`);
     
+    // If no files found, return the folder check results
+    if (!folderCheck.data.files || folderCheck.data.files.length === 0) {
+      console.log("No files found in folder, returning empty results");
+      return res.json([]);
+    }
+    
     const resp = await drive.files.list({
       q: `'${folderId}' in parents and fullText contains '${q.replace(/'/g, "\\'")}'`,
       fields: "files(id,name,mimeType,modifiedTime,webViewLink)",
