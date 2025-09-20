@@ -112,7 +112,9 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
     
     const { data: fileData } = await drive.files.get({
       fileId,
-      fields: "id,name,mimeType,parents,webViewLink,modifiedTime"
+      fields: "id,name,mimeType,parents,webViewLink,modifiedTime",
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
     });
     
     if (!(fileData.parents || []).includes(folderId)) {
@@ -135,7 +137,12 @@ app.get("/api/:profile/file/:fileId/export", async (req, res) => {
       streamResp.data.on("end", () => res.json({ fileId, name: fileData.name, content }));
       streamResp.data.on("error", () => res.status(500).json({ error: "Export stream error" }));
     } else {
-      const dl = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+      const dl = await drive.files.get({ 
+        fileId, 
+        alt: "media",
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true
+      }, { responseType: "arraybuffer" });
       const content = Buffer.from(dl.data).toString("utf8");
       res.json({ fileId, name: fileData.name, content });
     }
